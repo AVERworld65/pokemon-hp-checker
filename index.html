@@ -90,19 +90,6 @@
       text-align: center;
     }
 
-    .step-button {
-      width: 52px;
-      height: 52px;
-      padding: 0;
-      border-radius: 12px;
-      font-size: 24px;
-      line-height: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-    }
-
     button {
       border: none;
       border-radius: 12px;
@@ -122,6 +109,19 @@
 
     button:active {
       transform: scale(0.98);
+    }
+
+    .step-button {
+      width: 52px;
+      height: 52px;
+      padding: 0;
+      border-radius: 12px;
+      font-size: 24px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
     }
 
     .summary {
@@ -205,6 +205,29 @@
       gap: 20px;
     }
 
+    .tab-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab-button {
+      background: #e5e7eb;
+      color: var(--text);
+    }
+
+    .tab-button.active {
+      background: var(--main);
+      color: white;
+    }
+
+    .power-note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
     footer {
       text-align: center;
       color: var(--muted);
@@ -217,24 +240,16 @@
         font-size: 23px;
       }
 
-      .input-area {
-        grid-template-columns: 1fr;
-      }
-
-      button {
-        width: 100%;
-      }
-
-      .step-button {
-        width: 52px;
-      }
-
       .grid {
         grid-template-columns: 1fr;
       }
 
       .card {
         padding: 16px;
+      }
+
+      .step-button {
+        width: 52px;
       }
 
       table {
@@ -246,8 +261,13 @@
         padding: 6px;
       }
 
-      .small {
+      .small,
+      .power-note {
         font-size: 12px;
+      }
+
+      .tab-buttons {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -264,25 +284,22 @@
       <h2>HPを入力</h2>
 
       <div class="input-area">
-        <div>
-          <label for="hpInput">HP実数値</label>
+        <label for="hpInput">HP実数値</label>
 
-          <div class="hp-control">
-            <button type="button" id="minusButton" class="step-button">−</button>
+        <div class="hp-control">
+          <button type="button" id="minusButton" class="step-button">−</button>
 
-            <input
-              id="hpInput"
-              type="number"
-              min="1"
-              max="999"
-              placeholder="例：191"
-              inputmode="numeric"
-            />
+          <input
+            id="hpInput"
+            type="number"
+            min="1"
+            max="999"
+            placeholder="例：191"
+            inputmode="numeric"
+          />
 
-            <button type="button" id="plusButton" class="step-button">＋</button>
-          </div>
+          <button type="button" id="plusButton" class="step-button">＋</button>
         </div>
-
       </div>
 
       <div id="errorMessage" class="error"></div>
@@ -332,6 +349,40 @@
     </section>
 
     <section class="card">
+      <h2>きしかいせい威力表</h2>
+
+      <p class="small">
+        入力したHP実数値を「最大HP」として、残りHPごとの威力範囲を表示します。
+      </p>
+
+      <div class="tab-buttons">
+        <button type="button" id="normalGenTab" class="tab-button active">
+          第2・3・5世代以降
+        </button>
+
+        <button type="button" id="gen4Tab" class="tab-button">
+          第4世代のみ
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>威力</th>
+              <th>Xの範囲</th>
+              <th>残りHP</th>
+              <th>目安</th>
+            </tr>
+          </thead>
+          <tbody id="reversalTable"></tbody>
+        </table>
+      </div>
+
+      <p id="reversalNote" class="power-note"></p>
+    </section>
+
+    <section class="card">
       <h2>メモ</h2>
 
       <h3>よく見る調整例</h3>
@@ -374,9 +425,15 @@
     const summary = document.getElementById("summary");
     const fractionTable = document.getElementById("fractionTable");
     const adjustTable = document.getElementById("adjustTable");
+    const reversalTable = document.getElementById("reversalTable");
+    const reversalNote = document.getElementById("reversalNote");
+    const normalGenTab = document.getElementById("normalGenTab");
+    const gen4Tab = document.getElementById("gen4Tab");
 
     const MIN_HP = 1;
     const MAX_HP = 999;
+
+    let currentReversalMode = "normal";
 
     const fractionRules = [
       { label: "1/2", divisor: 2, usage: "はらだいこ、半分回復など" },
@@ -438,6 +495,35 @@
         targets: hp => nearestTargets(hp, 10, 9)
       }
     ];
+
+    const reversalRules = {
+      normal: {
+        title: "第2・3・5世代以降",
+        scale: 48,
+        formula: "X = 残りHP × 48 / 最大HP",
+        ranges: [
+          { power: 20, minX: 33, maxX: 48, approx: "68.7%以上" },
+          { power: 40, minX: 17, maxX: 32, approx: "35.4%〜68.7%" },
+          { power: 80, minX: 10, maxX: 16, approx: "20.8%〜35.4%" },
+          { power: 100, minX: 5, maxX: 9, approx: "10.4%〜20.8%" },
+          { power: 150, minX: 2, maxX: 4, approx: "4.2%〜10.4%" },
+          { power: 200, minX: 0, maxX: 1, approx: "4.2%以下" }
+        ]
+      },
+      gen4: {
+        title: "第4世代のみ",
+        scale: 64,
+        formula: "X = 残りHP × 64 / 最大HP",
+        ranges: [
+          { power: 20, minX: 43, maxX: 64, approx: "67.2%以上" },
+          { power: 40, minX: 22, maxX: 42, approx: "34.4%〜67.2%" },
+          { power: 80, minX: 13, maxX: 21, approx: "20.3%〜34.4%" },
+          { power: 100, minX: 6, maxX: 12, approx: "9.3%〜20.3%" },
+          { power: 150, minX: 2, maxX: 5, approx: "3.1%〜9.3%" },
+          { power: 200, minX: 0, maxX: 1, approx: "3.1%以下" }
+        ]
+      }
+    };
 
     function getCurrentHpOrDefault() {
       const hp = Number(hpInput.value);
@@ -526,16 +612,79 @@
       });
     }
 
+    function getRemainingHpRange(maxHp, ruleSet, minX, maxX) {
+      const matchingHpList = [];
+
+      for (let remainingHp = 1; remainingHp <= maxHp; remainingHp++) {
+        const x = Math.floor((remainingHp * ruleSet.scale) / maxHp);
+
+        if (x >= minX && x <= maxX) {
+          matchingHpList.push(remainingHp);
+        }
+      }
+
+      if (matchingHpList.length === 0) {
+        return "該当なし";
+      }
+
+      const minHp = matchingHpList[0];
+      const maxHpValue = matchingHpList[matchingHpList.length - 1];
+
+      if (minHp === maxHpValue) {
+        return `${minHp}`;
+      }
+
+      return `${minHp}〜${maxHpValue}`;
+    }
+
+    function renderReversalTable(maxHp) {
+      reversalTable.innerHTML = "";
+
+      const ruleSet = reversalRules[currentReversalMode];
+
+      ruleSet.ranges.forEach(range => {
+        const remainingHpRange = getRemainingHpRange(
+          maxHp,
+          ruleSet,
+          range.minX,
+          range.maxX
+        );
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${range.power}</strong></td>
+          <td>${range.minX}〜${range.maxX}</td>
+          <td>${remainingHpRange}</td>
+          <td>${range.approx}</td>
+        `;
+
+        reversalTable.appendChild(tr);
+      });
+
+      reversalNote.textContent =
+        `${ruleSet.title}：${ruleSet.formula}。小数点以下は切り捨て。残りHP0はひんし状態のため、表では残りHP1以上のみ表示しています。`;
+    }
+
     function checkHp() {
       const hp = Number(hpInput.value);
 
       errorMessage.textContent = "";
       summary.style.display = "none";
 
+      if (hpInput.value === "") {
+        fractionTable.innerHTML = "";
+        adjustTable.innerHTML = "";
+        reversalTable.innerHTML = "";
+        reversalNote.textContent = "";
+        return;
+      }
+
       if (!Number.isInteger(hp) || hp <= 0) {
         errorMessage.textContent = "HP実数値には1以上の整数を入力してください。";
         fractionTable.innerHTML = "";
         adjustTable.innerHTML = "";
+        reversalTable.innerHTML = "";
+        reversalNote.textContent = "";
         return;
       }
 
@@ -543,11 +692,14 @@
         errorMessage.textContent = "HPが大きすぎます。通常のポケモンのHP実数値を入力してください。";
         fractionTable.innerHTML = "";
         adjustTable.innerHTML = "";
+        reversalTable.innerHTML = "";
+        reversalNote.textContent = "";
         return;
       }
 
       renderFractionTable(hp);
       renderAdjustTable(hp);
+      renderReversalTable(hp);
 
       const okRules = adjustRules
         .filter(rule => rule.check(hp))
@@ -560,6 +712,20 @@
       } else {
         summary.textContent = `HP ${hp} は主要な調整条件には一致していません。近いHPを下の表で確認してください。`;
       }
+    }
+
+    function switchReversalMode(mode) {
+      currentReversalMode = mode;
+
+      if (mode === "normal") {
+        normalGenTab.classList.add("active");
+        gen4Tab.classList.remove("active");
+      } else {
+        normalGenTab.classList.remove("active");
+        gen4Tab.classList.add("active");
+      }
+
+      checkHp();
     }
 
     minusButton.addEventListener("click", () => {
@@ -577,9 +743,15 @@
     });
 
     hpInput.addEventListener("input", () => {
-      if (hpInput.value !== "") {
-        checkHp();
-      }
+      checkHp();
+    });
+
+    normalGenTab.addEventListener("click", () => {
+      switchReversalMode("normal");
+    });
+
+    gen4Tab.addEventListener("click", () => {
+      switchReversalMode("gen4");
     });
   </script>
 </body>
