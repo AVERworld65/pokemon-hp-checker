@@ -77,12 +77,33 @@
       margin-bottom: 6px;
     }
 
+    .hp-control {
+      display: grid;
+      grid-template-columns: 52px 1fr 52px;
+      gap: 8px;
+      align-items: center;
+    }
+
     input {
       width: 100%;
       padding: 14px;
       font-size: 18px;
       border: 1px solid var(--border);
       border-radius: 12px;
+      text-align: center;
+    }
+
+    .step-button {
+      width: 52px;
+      height: 52px;
+      padding: 0;
+      border-radius: 12px;
+      font-size: 24px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
     }
 
     button {
@@ -100,6 +121,10 @@
 
     button:hover {
       background: var(--main-dark);
+    }
+
+    button:active {
+      transform: scale(0.98);
     }
 
     .summary {
@@ -203,6 +228,10 @@
         width: 100%;
       }
 
+      .step-button {
+        width: 52px;
+      }
+
       .grid {
         grid-template-columns: 1fr;
       }
@@ -240,14 +269,21 @@
       <div class="input-area">
         <div>
           <label for="hpInput">HP実数値</label>
-          <input
-            id="hpInput"
-            type="number"
-            min="1"
-            max="999"
-            placeholder="例：191"
-            inputmode="numeric"
-          />
+
+          <div class="hp-control">
+            <button type="button" id="minusButton" class="step-button">−</button>
+
+            <input
+              id="hpInput"
+              type="number"
+              min="1"
+              max="999"
+              placeholder="例：191"
+              inputmode="numeric"
+            />
+
+            <button type="button" id="plusButton" class="step-button">＋</button>
+          </div>
         </div>
 
         <button id="checkButton">チェックする</button>
@@ -337,10 +373,15 @@
   <script>
     const hpInput = document.getElementById("hpInput");
     const checkButton = document.getElementById("checkButton");
+    const minusButton = document.getElementById("minusButton");
+    const plusButton = document.getElementById("plusButton");
     const errorMessage = document.getElementById("errorMessage");
     const summary = document.getElementById("summary");
     const fractionTable = document.getElementById("fractionTable");
     const adjustTable = document.getElementById("adjustTable");
+
+    const MIN_HP = 1;
+    const MAX_HP = 999;
 
     const fractionRules = [
       { label: "1/2", divisor: 2, usage: "はらだいこ、半分回復など" },
@@ -402,6 +443,24 @@
         targets: hp => nearestTargets(hp, 10, 9)
       }
     ];
+
+    function getCurrentHpOrDefault() {
+      const hp = Number(hpInput.value);
+
+      if (Number.isInteger(hp) && hp >= MIN_HP && hp <= MAX_HP) {
+        return hp;
+      }
+
+      return MIN_HP;
+    }
+
+    function changeHp(amount) {
+      const currentHp = getCurrentHpOrDefault();
+      const nextHp = Math.min(MAX_HP, Math.max(MIN_HP, currentHp + amount));
+
+      hpInput.value = nextHp;
+      checkHp();
+    }
 
     function nearestTargets(hp, base, remainder) {
       const results = [];
@@ -485,7 +544,7 @@
         return;
       }
 
-      if (hp > 999) {
+      if (hp > MAX_HP) {
         errorMessage.textContent = "HPが大きすぎます。通常のポケモンのHP実数値を入力してください。";
         fractionTable.innerHTML = "";
         adjustTable.innerHTML = "";
@@ -509,6 +568,14 @@
     }
 
     checkButton.addEventListener("click", checkHp);
+
+    minusButton.addEventListener("click", () => {
+      changeHp(-1);
+    });
+
+    plusButton.addEventListener("click", () => {
+      changeHp(1);
+    });
 
     hpInput.addEventListener("keydown", event => {
       if (event.key === "Enter") {
