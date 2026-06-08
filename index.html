@@ -65,10 +65,7 @@
     }
 
     .input-area {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: end;
+      display: block;
     }
 
     label {
@@ -286,7 +283,6 @@
           </div>
         </div>
 
-        <button id="checkButton">チェックする</button>
       </div>
 
       <div id="errorMessage" class="error"></div>
@@ -372,7 +368,6 @@
 
   <script>
     const hpInput = document.getElementById("hpInput");
-    const checkButton = document.getElementById("checkButton");
     const minusButton = document.getElementById("minusButton");
     const plusButton = document.getElementById("plusButton");
     const errorMessage = document.getElementById("errorMessage");
@@ -566,8 +561,6 @@
         summary.textContent = `HP ${hp} は主要な調整条件には一致していません。近いHPを下の表で確認してください。`;
       }
     }
-
-    checkButton.addEventListener("click", checkHp);
 
     minusButton.addEventListener("click", () => {
       changeHp(-1);
