@@ -64,10 +64,6 @@
       box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
     }
 
-    .input-area {
-      display: block;
-    }
-
     label {
       display: block;
       font-weight: 700;
@@ -205,11 +201,19 @@
       gap: 20px;
     }
 
-    .tab-buttons {
+    .main-tabs,
+    .sub-tabs {
       display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 8px;
       margin-bottom: 16px;
+    }
+
+    .main-tabs {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .sub-tabs {
+      grid-template-columns: repeat(2, 1fr);
     }
 
     .tab-button {
@@ -222,7 +226,15 @@
       color: white;
     }
 
-    .power-note {
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .note {
       margin-top: 12px;
       color: var(--muted);
       font-size: 14px;
@@ -248,8 +260,9 @@
         padding: 16px;
       }
 
-      .step-button {
-        width: 52px;
+      .main-tabs,
+      .sub-tabs {
+        grid-template-columns: 1fr;
       }
 
       table {
@@ -262,12 +275,8 @@
       }
 
       .small,
-      .power-note {
+      .note {
         font-size: 12px;
-      }
-
-      .tab-buttons {
-        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -276,110 +285,142 @@
 <body>
   <header>
     <h1>ポケモンHP調整チェッカー</h1>
-    <p>HP実数値から割合ダメージ・回復量・HP調整を確認できます。</p>
+    <p>HP実数値から各種ダメージ・HP調整を確認できます。</p>
   </header>
 
   <main>
     <section class="card">
       <h2>HPを入力</h2>
 
-      <div class="input-area">
-        <label for="hpInput">HP実数値</label>
+      <label for="hpInput">HP実数値</label>
 
-        <div class="hp-control">
-          <button type="button" id="minusButton" class="step-button">−</button>
+      <div class="hp-control">
+        <button type="button" id="minusButton" class="step-button">−</button>
 
-          <input
-            id="hpInput"
-            type="number"
-            min="1"
-            max="999"
-            placeholder="例：191"
-            inputmode="numeric"
-          />
+        <input
+          id="hpInput"
+          type="number"
+          min="1"
+          max="999"
+          placeholder="例：191"
+          inputmode="numeric"
+        />
 
-          <button type="button" id="plusButton" class="step-button">＋</button>
-        </div>
+        <button type="button" id="plusButton" class="step-button">＋</button>
       </div>
 
       <div id="errorMessage" class="error"></div>
       <div id="summary" class="summary" style="display: none;"></div>
     </section>
 
-    <section class="grid">
-      <section class="card">
-        <h2>割合ダメージ・回復量</h2>
-        <p class="small">
-          小数点以下は切り捨てで計算しています。
-        </p>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>割合</th>
-                <th>主な用途例</th>
-                <th>実数値</th>
-              </tr>
-            </thead>
-            <tbody id="fractionTable"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>HP調整チェック</h2>
-        <p class="small">
-          条件に一致するか、近いHPとの差分を表示します。
-        </p>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>調整</th>
-                <th>判定</th>
-                <th>近いHP</th>
-              </tr>
-            </thead>
-            <tbody id="adjustTable"></tbody>
-          </table>
-        </div>
-      </section>
-    </section>
-
     <section class="card">
-      <h2>きしかいせい・じたばた威力表</h2>
-
-      <p class="small">
-        入力したHP実数値を「最大HP」として、残りHPごとの威力範囲を表示します。
-      </p>
-
-      <div class="tab-buttons">
-        <button type="button" id="normalGenTab" class="tab-button active">
-          第2・3・5世代以降
+      <div class="main-tabs">
+        <button type="button" id="basicTab" class="tab-button active">
+          基本計算
         </button>
-
-        <button type="button" id="gen4Tab" class="tab-button">
-          第4世代のみ
+        <button type="button" id="reversalTab" class="tab-button">
+          きしかいせい・じたばた
+        </button>
+        <button type="button" id="toxicTab" class="tab-button">
+          もうどく
         </button>
       </div>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>威力</th>
-              <th>Xの範囲</th>
-              <th>残りHP</th>
-              <th>目安</th>
-            </tr>
-          </thead>
-          <tbody id="reversalTable"></tbody>
-        </table>
+      <div id="basicPanel" class="tab-panel active">
+        <section class="grid">
+          <section>
+            <h2>割合ダメージ・回復量</h2>
+            <p class="small">小数点以下は切り捨てで計算しています。</p>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>割合</th>
+                    <th>主な用途例</th>
+                    <th>実数値</th>
+                  </tr>
+                </thead>
+                <tbody id="fractionTable"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section>
+            <h2>HP調整チェック</h2>
+            <p class="small">条件に一致するか、近いHPとの差分を表示します。</p>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>調整</th>
+                    <th>判定</th>
+                    <th>近いHP</th>
+                  </tr>
+                </thead>
+                <tbody id="adjustTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
       </div>
 
-      <p id="reversalNote" class="power-note"></p>
+      <div id="reversalPanel" class="tab-panel">
+        <h2>きしかいせい・じたばた威力表</h2>
+        <p class="small">
+          入力したHP実数値を「最大HP」として、残りHPごとの威力範囲を表示します。
+        </p>
+
+        <div class="sub-tabs">
+          <button type="button" id="normalGenTab" class="tab-button active">
+            第2・3・5世代以降
+          </button>
+          <button type="button" id="gen4Tab" class="tab-button">
+            第4世代のみ
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>威力</th>
+                <th>Xの範囲</th>
+                <th>残りHP</th>
+                <th>目安</th>
+              </tr>
+            </thead>
+            <tbody id="reversalTable"></tbody>
+          </table>
+        </div>
+
+        <p id="reversalNote" class="note"></p>
+      </div>
+
+      <div id="toxicPanel" class="tab-panel">
+        <h2>もうどくダメージ表</h2>
+        <p class="small">
+          入力したHP実数値を「最大HP」として、各ターンのもうどくダメージを表示します。
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ターン</th>
+                <th>割合</th>
+                <th>ダメージ</th>
+                <th>累計</th>
+                <th>残HP</th>
+              </tr>
+            </thead>
+            <tbody id="toxicTable"></tbody>
+          </table>
+        </div>
+
+        <p id="toxicNote" class="note"></p>
+      </div>
     </section>
 
     <section class="card">
@@ -423,16 +464,29 @@
     const plusButton = document.getElementById("plusButton");
     const errorMessage = document.getElementById("errorMessage");
     const summary = document.getElementById("summary");
+
     const fractionTable = document.getElementById("fractionTable");
     const adjustTable = document.getElementById("adjustTable");
     const reversalTable = document.getElementById("reversalTable");
     const reversalNote = document.getElementById("reversalNote");
+    const toxicTable = document.getElementById("toxicTable");
+    const toxicNote = document.getElementById("toxicNote");
+
+    const basicTab = document.getElementById("basicTab");
+    const reversalTab = document.getElementById("reversalTab");
+    const toxicTab = document.getElementById("toxicTab");
+
+    const basicPanel = document.getElementById("basicPanel");
+    const reversalPanel = document.getElementById("reversalPanel");
+    const toxicPanel = document.getElementById("toxicPanel");
+
     const normalGenTab = document.getElementById("normalGenTab");
     const gen4Tab = document.getElementById("gen4Tab");
 
     const MIN_HP = 1;
     const MAX_HP = 999;
 
+    let currentMainTab = "basic";
     let currentReversalMode = "normal";
 
     const fractionRules = [
@@ -502,12 +556,12 @@
         scale: 48,
         formula: "X = 残りHP × 48 / 最大HP",
         ranges: [
-          { power: 20, minX: 33, maxX: 48, approx: "68.7%以上" },
-          { power: 40, minX: 17, maxX: 32, approx: "35.4%〜68.7%" },
-          { power: 80, minX: 10, maxX: 16, approx: "20.8%〜35.4%" },
-          { power: 100, minX: 5, maxX: 9, approx: "10.4%〜20.8%" },
-          { power: 150, minX: 2, maxX: 4, approx: "4.2%〜10.4%" },
-          { power: 200, minX: 0, maxX: 1, approx: "4.2%以下" }
+          { power: 20, minX: 33, maxX: 48, approx: "約68.7%以上" },
+          { power: 40, minX: 17, maxX: 32, approx: "約35.4%〜68.7%" },
+          { power: 80, minX: 10, maxX: 16, approx: "約20.8%〜35.4%" },
+          { power: 100, minX: 5, maxX: 9, approx: "約10.4%〜20.8%" },
+          { power: 150, minX: 2, maxX: 4, approx: "約4.2%〜10.4%" },
+          { power: 200, minX: 0, maxX: 1, approx: "約4.2%以下" }
         ]
       },
       gen4: {
@@ -515,12 +569,12 @@
         scale: 64,
         formula: "X = 残りHP × 64 / 最大HP",
         ranges: [
-          { power: 20, minX: 43, maxX: 64, approx: "67.2%以上" },
-          { power: 40, minX: 22, maxX: 42, approx: "34.4%〜67.2%" },
-          { power: 80, minX: 13, maxX: 21, approx: "20.3%〜34.4%" },
-          { power: 100, minX: 6, maxX: 12, approx: "9.3%〜20.3%" },
-          { power: 150, minX: 2, maxX: 5, approx: "3.1%〜9.3%" },
-          { power: 200, minX: 0, maxX: 1, approx: "3.1%以下" }
+          { power: 20, minX: 43, maxX: 64, approx: "約67.2%以上" },
+          { power: 40, minX: 22, maxX: 42, approx: "約34.4%〜67.2%" },
+          { power: 80, minX: 13, maxX: 21, approx: "約20.3%〜34.4%" },
+          { power: 100, minX: 6, maxX: 12, approx: "約9.3%〜20.3%" },
+          { power: 150, minX: 2, maxX: 5, approx: "約3.1%〜9.3%" },
+          { power: 200, minX: 0, maxX: 1, approx: "約3.1%以下" }
         ]
       }
     };
@@ -554,6 +608,15 @@
 
       results.sort((a, b) => Math.abs(a - hp) - Math.abs(b - hp));
       return results.slice(0, 3);
+    }
+
+    function clearAllTables() {
+      fractionTable.innerHTML = "";
+      adjustTable.innerHTML = "";
+      reversalTable.innerHTML = "";
+      toxicTable.innerHTML = "";
+      reversalNote.textContent = "";
+      toxicNote.textContent = "";
     }
 
     function renderFractionTable(hp) {
@@ -665,6 +728,37 @@
         `${ruleSet.title}：${ruleSet.formula}。小数点以下は切り捨て。残りHP0はひんし状態のため、表では残りHP1以上のみ表示しています。`;
     }
 
+    function renderToxicTable(maxHp) {
+      toxicTable.innerHTML = "";
+
+      let totalDamage = 0;
+
+      for (let turn = 1; turn <= 16; turn++) {
+        const numerator = Math.min(turn, 15);
+        const damage = Math.max(1, Math.floor((maxHp * numerator) / 16));
+
+        totalDamage += damage;
+
+        const remainingHp = Math.max(0, maxHp - totalDamage);
+        const turnLabel = turn === 16 ? "16以降" : `${turn}`;
+        const ratioLabel = `${numerator}/16`;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${turnLabel}</strong></td>
+          <td>${ratioLabel}</td>
+          <td>${damage}</td>
+          <td>${totalDamage}</td>
+          <td>${remainingHp}</td>
+        `;
+
+        toxicTable.appendChild(tr);
+      }
+
+      toxicNote.textContent =
+        "もうどくはターンごとに 1/16、2/16…と増え、最大15/16です。各ターンのダメージは小数点以下切り捨て、最小1ダメージとして計算しています。16ターン目以降は15/16として表示しています。";
+    }
+
     function checkHp() {
       const hp = Number(hpInput.value);
 
@@ -672,34 +766,26 @@
       summary.style.display = "none";
 
       if (hpInput.value === "") {
-        fractionTable.innerHTML = "";
-        adjustTable.innerHTML = "";
-        reversalTable.innerHTML = "";
-        reversalNote.textContent = "";
+        clearAllTables();
         return;
       }
 
       if (!Number.isInteger(hp) || hp <= 0) {
         errorMessage.textContent = "HP実数値には1以上の整数を入力してください。";
-        fractionTable.innerHTML = "";
-        adjustTable.innerHTML = "";
-        reversalTable.innerHTML = "";
-        reversalNote.textContent = "";
+        clearAllTables();
         return;
       }
 
       if (hp > MAX_HP) {
         errorMessage.textContent = "HPが大きすぎます。通常のポケモンのHP実数値を入力してください。";
-        fractionTable.innerHTML = "";
-        adjustTable.innerHTML = "";
-        reversalTable.innerHTML = "";
-        reversalNote.textContent = "";
+        clearAllTables();
         return;
       }
 
       renderFractionTable(hp);
       renderAdjustTable(hp);
       renderReversalTable(hp);
+      renderToxicTable(hp);
 
       const okRules = adjustRules
         .filter(rule => rule.check(hp))
@@ -714,16 +800,23 @@
       }
     }
 
+    function switchMainTab(tabName) {
+      currentMainTab = tabName;
+
+      basicTab.classList.toggle("active", tabName === "basic");
+      reversalTab.classList.toggle("active", tabName === "reversal");
+      toxicTab.classList.toggle("active", tabName === "toxic");
+
+      basicPanel.classList.toggle("active", tabName === "basic");
+      reversalPanel.classList.toggle("active", tabName === "reversal");
+      toxicPanel.classList.toggle("active", tabName === "toxic");
+    }
+
     function switchReversalMode(mode) {
       currentReversalMode = mode;
 
-      if (mode === "normal") {
-        normalGenTab.classList.add("active");
-        gen4Tab.classList.remove("active");
-      } else {
-        normalGenTab.classList.remove("active");
-        gen4Tab.classList.add("active");
-      }
+      normalGenTab.classList.toggle("active", mode === "normal");
+      gen4Tab.classList.toggle("active", mode === "gen4");
 
       checkHp();
     }
@@ -744,6 +837,18 @@
 
     hpInput.addEventListener("input", () => {
       checkHp();
+    });
+
+    basicTab.addEventListener("click", () => {
+      switchMainTab("basic");
+    });
+
+    reversalTab.addEventListener("click", () => {
+      switchMainTab("reversal");
+    });
+
+    toxicTab.addEventListener("click", () => {
+      switchMainTab("toxic");
     });
 
     normalGenTab.addEventListener("click", () => {
